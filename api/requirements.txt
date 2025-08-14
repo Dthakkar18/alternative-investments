@@ -1,0 +1,16 @@
+# --- Django core ---
+Django>=5.0,<6.0
+djangorestframework>=3.15,<4.0
+
+# --- Database ---
+psycopg[binary]>=3.2,<4.0   # PostgreSQL adapter
+
+# --- Caching / async tasks ---
+redis>=5.0,<6.0
+
+# --- Deployment server ---
+gunicorn>=21.2,<22.0
+
+# --- Utilities ---
+python-dotenv>=1.0,<2.0     # load .env files in local/dev
+

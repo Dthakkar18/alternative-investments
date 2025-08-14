@@ -1,0 +1,1 @@
+Put the Caddy file in this directory.

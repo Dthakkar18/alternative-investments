@@ -1,0 +1,1 @@
+Put the manage.py and entire django project in this directory.

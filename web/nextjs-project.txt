@@ -1,1 +1,0 @@
-Create your npm project in this directory.

@@ -19,6 +19,14 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+  
+  function getCookie(name: string) {
+    return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
+  }
+
+  function getErrorMessage(err: unknown) {
+    return err instanceof Error ? err.message : "Something went wrong.";
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,15 +37,22 @@ export default function SignInPage() {
 
     setLoading(true);
     try {
-      // Recommended: backend sets an httpOnly session cookie on success.
+      // Ensure csrftoken cookie exists
+      await fetch(`${apiBase}/auth/csrf/`, { credentials: "include" });
+      const csrftoken = getCookie("csrftoken") || "";
+
+      // POST login with CSRF header and cookies
       const res = await fetch(`${apiBase}/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // include cookies if server sets them
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken,
+        },
+        credentials: "include",
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password,
-          remember, // optional: your backend can control session ttl
+          remember,
         }),
       });
 
@@ -55,8 +70,8 @@ export default function SignInPage() {
       // if (data.requires2fa) return router.push(`/verify-2fa?email=${encodeURIComponent(email)}`);
 
       router.push(redirect);
-    } catch (e: any) {
-      setErr(e?.message || "Something went wrong.");
+    } catch (err: unknown) {
+      setErr(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

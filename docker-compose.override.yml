@@ -17,7 +17,8 @@ services:
   web:
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      API_INTERNAL_URL: http://api:8000/api
     command: npm run dev
     volumes:
       - ./web:/app

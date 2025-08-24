@@ -39,12 +39,20 @@ export default function SignUpPage() {
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
 
+  function getCookie(name: string) {
+    return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
+  }
+  
   const onChange =
     (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm((f) => ({ ...f, [key]: e.target.value }));
       setErr("");
       setOkMsg("");
     };
+
+  function getErrorMessage(err: unknown) {
+    return err instanceof Error ? err.message : "Something went wrong.";
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,13 +69,19 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
+      // Ensure csrftoken cookie exists
+      await fetch(`${apiBase}/auth/csrf/`, { credentials: "include" });
+      const csrftoken = getCookie("csrftoken") || "";
+
       // Adjust endpoint to match your Django view/URLconf
       // Recommended Django URL (proxied by Caddy): POST /api/auth/register
       const res = await fetch(`${apiBase}/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // If you rely on CSRF cookies under same domain, you can add:
-        // credentials: "include",
+        credentials: "include",                 // include cookies
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken,             // CSRF header
+        },
         body: JSON.stringify({
           name: form.name.trim(),
           email: form.email.trim().toLowerCase(),
@@ -90,8 +104,8 @@ export default function SignUpPage() {
       setOkMsg("Account created! Redirecting to sign in…");
       // small delay so user sees success message
       setTimeout(() => router.push("/sign-in"), 600);
-    } catch (e: any) {
-      setErr(e?.message || "Something went wrong.");
+    } catch (err: unknown) {
+      setErr(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

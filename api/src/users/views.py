@@ -38,9 +38,10 @@ def login_view(request):
     return Response(MeSerializer(user).data)
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def logout_view(request):
     logout(request)
-    return Response({"detail": "Logged out"})
+    return Response({"detail": "Logged out"}, status=200)
 
 @api_view(["GET"])
 def me_view(request):

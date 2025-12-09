@@ -94,8 +94,8 @@ Users crowdfund ownership, the platform securely stores/authenticates the item, 
 ---
 
 ## 💻 Tech Stack
-- **Frontend:** React / Next.js
-- **Backend:** Django or Node.js
+- **Frontend:** React.js
+- **Backend:** Django
 - **Auth/Payments:** Firebase, Stripe
 - **Database:** PostgreSQL
 - **Storage:** AWS S3

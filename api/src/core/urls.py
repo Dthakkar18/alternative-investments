@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from users import views as u
 
 urlpatterns = [
@@ -9,6 +9,7 @@ urlpatterns = [
     path("api/auth/login", u.login_view),
     path("api/auth/logout", u.logout_view),
     path("api/auth/me", u.me_view),
+    path("api/", include("listings.urls"))
     # path("api/auth/portfolio", u.portfolio_view),
 ]
 

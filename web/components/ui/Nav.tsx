@@ -10,9 +10,10 @@ export default async function Nav() {
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center">
         {/* Left group */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="font-semibold">Collectibles</Link>
-          <Link href="/marketplace" className="text-sm hover:underline">Marketplace</Link>
-          {me && <Link href="/portfolio" className="text-sm hover:underline">Portfolio</Link>}
+          <Link href="/" className="text-sm hover:text-foreground transition-colors">Collectibles</Link>
+          <Link href="/marketplace" className="text-sm hover:text-foreground transition-colors">Marketplace</Link>
+          {me && (<Link href="/seller/listings" className="text-sm hover:text-foreground transition-colors">My Listings</Link>)}
+          {me && <Link href="/portfolio" className="text-sm hover:text-foreground transition-colors">Portfolio</Link>}
         </div>
 
         {/* Spacer pushes right group over */}

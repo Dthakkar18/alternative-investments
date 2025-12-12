@@ -6,6 +6,17 @@ class ListingSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source="seller.name", read_only=True)
     seller_email = serializers.EmailField(source="seller.email", read_only=True)
 
+    total_invested = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+    )
+    percent_funded = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+
     class Meta:
         model = Listing
         fields = [
@@ -19,6 +30,8 @@ class ListingSerializer(serializers.ModelSerializer):
             "asset_value",
             "seller_retain_percent",
             "target_amount",
+            "total_invested",
+            "percent_funded",
             "min_investment",
             "status",
             "created_at",
@@ -30,6 +43,8 @@ class ListingSerializer(serializers.ModelSerializer):
             "seller_name",
             "seller_email",
             "target_amount",
+            "total_invested",
+            "percent_funded",
             "created_at",
             "updated_at",
         ]

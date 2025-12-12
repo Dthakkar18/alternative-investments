@@ -2,7 +2,9 @@ from django.conf import settings
 from django.db import models
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
-
+from decimal import Decimal
+from django.db import models
+from django.db.models import Sum
 
 class Listing(models.Model):
     STATUS_DRAFT = "draft"
@@ -77,3 +79,16 @@ class Listing(models.Model):
             ).quantize(Decimal("0.01"))
 
         super().save(*args, **kwargs)
+
+    @property
+    def total_invested(self) -> Decimal:
+        agg = self.investments.aggregate(total=Sum("amount"))
+        return agg["total"] or Decimal("0.00")
+
+    @property
+    def percent_funded(self) -> Decimal:
+        if not self.target_amount or self.target_amount == 0:
+            return Decimal("0.00")
+        return (self.total_invested / self.target_amount * Decimal("100.00")).quantize(
+            Decimal("0.01")
+        )

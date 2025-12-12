@@ -7,6 +7,8 @@ type Listing = {
   title: string;
   description: string;
   seller_name: string;
+  asset_value: string;
+  seller_retain_percent: string;
   target_amount: string;
   min_investment: string;
   status: string;
@@ -100,10 +102,13 @@ export default function MarketplacePage() {
                 </div>
                 <div className="text-right text-xs">
                   <div className="font-medium">
-                    Target: ${listing.target_amount}
+                    For sale: ${listing.target_amount}
                   </div>
                   <div className="text-foreground/60">
-                    Min: ${listing.min_investment}
+                    Asset: ${listing.asset_value}
+                  </div>
+                  <div className="text-foreground/60 mt-1">
+                    Seller keeps {Number(listing.seller_retain_percent || "0").toFixed(2)}%
                   </div>
                   <div className="mt-2 inline-flex items-center rounded-full border border-foreground/15 px-2 py-0.5 text-[11px] uppercase tracking-wide">
                     {listing.status}

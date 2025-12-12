@@ -16,6 +16,8 @@ class ListingSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "category",
+            "asset_value",
+            "seller_retain_percent",
             "target_amount",
             "min_investment",
             "status",
@@ -27,12 +29,14 @@ class ListingSerializer(serializers.ModelSerializer):
             "seller",
             "seller_name",
             "seller_email",
+            "target_amount",
             "created_at",
             "updated_at",
         ]
         extra_kwargs = {
-            # optional on create/patch, defaults to "draft"
-            "status": {"required": False}
+            "asset_value": {"required": True},
+            "seller_retain_percent": {"required": True},
+            "status": {"required": False},
         }
 
     def create(self, validated_data):
@@ -40,3 +44,7 @@ class ListingSerializer(serializers.ModelSerializer):
         if request and request.user and request.user.is_authenticated:
             validated_data["seller"] = request.user
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # normal partial update model.save() will recompute target_amount
+        return super().update(instance, validated_data)

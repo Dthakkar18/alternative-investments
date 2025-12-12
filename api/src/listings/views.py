@@ -1,6 +1,7 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from .models import Listing
 from .serializers import ListingSerializer
+from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 
 
@@ -14,6 +15,12 @@ class IsSellerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         return obj.seller == request.user
+    
+    def destroy(self, request, *args, **kwargs):
+        listing = self.get_object()
+        if listing.status != Listing.STATUS_DRAFT:
+            raise PermissionDenied("Only draft listings can be deleted.")
+        return super().destroy(request, *args, **kwargs)
 
 
 class ListingViewSet(viewsets.ModelViewSet):
@@ -44,29 +51,36 @@ class ListingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user)
 
-    def partial_update(self, request, *args, **kwargs):
-        listing = self.get_object()
+    def update(self, request, *args, **kwargs):
+        """
+        Handles both PUT and PATCH.
+
+        - Allows status only changes (publish/unpublish) regardless of current status.
+        - Blocks editing other fields unless the listing is in draft.
+        """
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        incoming_fields = set(request.data.keys())
+        non_status_fields = incoming_fields - {"status"}
         new_status = request.data.get("status")
 
-        # If we're changing status (e.g., publish/unpublish),
-        # allow it even if the current status is not "draft".
-        # Permissions already ensure only the seller can do this.
-        if new_status is not None:
-            return super().partial_update(request, *args, **kwargs)
+        # Case 1: Pure status change ({"status": "draft"} or {"status": "live"})
+        # Allowed even if listing is not draft, as long as IsSellerOrReadOnly passes.
+        if new_status is not None and not non_status_fields:
+            pass
 
-        # For all OTHER partial edits (title, description, etc.),
-        # require that the listing is currently a draft.
-        if listing.status != Listing.STATUS_DRAFT:
+        # Case 2: Any other field edits on non draft listings then forbidden
+        elif instance.status != Listing.STATUS_DRAFT:
             raise PermissionDenied("Only draft listings can be edited.")
 
-        return super().partial_update(request, *args, **kwargs)
+        # Case 3: Draft listing with non status edits then allowed
 
-    # Also block full update
-    def update(self, request, *args, **kwargs):
-        listing = self.get_object()
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
 
-        if listing.status != Listing.STATUS_DRAFT:
-            raise PermissionDenied("Only draft listings can be edited.")
-
-        return super().update(request, *args, **kwargs)
+        return Response(serializer.data)
 

@@ -25,6 +25,48 @@ export default function SellerListingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  async function deleteListing(id: number) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this listing? This cannot be undone."
+      )
+    ) {
+      return;
+    }
+  
+    setDeletingId(id);
+    setError(null);
+  
+    try {
+      // Get CSRF cookie
+      await fetch(`${apiBase}/auth/csrf/`, { credentials: "include" });
+      const csrftoken = getCookie("csrftoken") || "";
+  
+      const res = await fetch(`${apiBase}/listings/${id}/`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "X-CSRFToken": csrftoken,
+        },
+      });
+  
+      if (!res.ok) {
+        // Don’t remove from state but surface error instead
+        setError(`Failed to delete listing (status ${res.status}).`);
+        return;
+      }
+  
+      // Actually gone on the backend then now update state
+      setListings((prev) => prev.filter((l) => l.id !== id));
+    } catch (e) {
+      console.error("Network error deleting listing:", e);
+      setError("Network error while deleting listing.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function loadListings() {
     setLoading(true);
@@ -99,10 +141,21 @@ export default function SellerListingsPage() {
 
   return (
     <main className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-2">Your listings</h1>
-      <p className="text-sm text-foreground/70 mb-4">
-        Manage the offerings you&apos;ve submitted.
-      </p>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Your listings</h1>
+          <p className="text-sm text-foreground/70">
+            Manage the offerings you&apos;ve submitted.
+          </p>
+        </div>
+
+        <a
+          href="/seller/new"
+          className="inline-flex items-center rounded-full bg-zinc-100 px-4 py-1.5 text-xs font-medium text-black shadow-sm transition hover:bg-white"
+        >
+          + Create listing
+        </a>
+      </div>
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm">
@@ -169,6 +222,15 @@ export default function SellerListingsPage() {
                   >
                     Unpublish
                   </button>
+
+                  {listing.status === "draft" && (
+                    <button
+                      onClick={() => deleteListing(listing.id)}
+                      className="rounded-full border border-red-500/30 text-red-500 px-3 py-1 text-xs hover:border-red-500 transition"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );

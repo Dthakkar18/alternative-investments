@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
@@ -23,13 +23,25 @@ export default function NewListingPage() {
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [targetAmount, setTargetAmount] = useState("");
+  const [assetValue, setAssetValue] = useState(""); // NEW
+  const [retainPercent, setRetainPercent] = useState("0"); // NEW (% seller keeps)
   const [minInvestment, setMinInvestment] = useState("");
   const [description, setDescription] = useState("");
 
   const [err, setErr] = useState("");
   const [okMsg, setOkMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { forSalePercent, forSaleAmount } = useMemo(() => {
+    const asset = Number(assetValue || 0);
+    const keep = Number(retainPercent || 0);
+    const pct = Math.min(100, Math.max(0, 100 - keep));
+    const amt = asset > 0 ? (asset * pct) / 100 : 0;
+    return {
+      forSalePercent: pct,
+      forSaleAmount: amt.toFixed(2),
+    };
+  }, [assetValue, retainPercent]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,12 +50,12 @@ export default function NewListingPage() {
 
     if (!title.trim()) return setErr("Please enter a title.");
     if (!description.trim()) return setErr("Please enter a description.");
-    if (!targetAmount) return setErr("Please enter a target amount.");
+    if (!assetValue) return setErr("Please enter an asset value.");
 
     setLoading(true);
 
     try {
-      // Ensure csrftoken cookie exists (same pattern as sign-in/sign-up)
+      // Ensure csrftoken cookie exists
       await fetch(`${apiBase}/auth/csrf/`, { credentials: "include" });
       const csrftoken = getCookie("csrftoken") || "";
 
@@ -58,8 +70,10 @@ export default function NewListingPage() {
           title: title.trim(),
           description: description.trim(),
           category: category.trim() || null,
-          target_amount: targetAmount,
+          asset_value: assetValue,               // NEW
+          seller_retain_percent: retainPercent || "0", // NEW
           min_investment: minInvestment || null,
+          // target_amount is computed server-side
         }),
       });
 
@@ -102,7 +116,8 @@ export default function NewListingPage() {
     <main className="p-8 max-w-xl mx-auto">
       <h1 className="text-2xl font-semibold mb-2">Create a New Listing</h1>
       <p className="text-sm text-foreground/70 mb-6">
-        Describe your collectible and set funding targets.
+        Describe your collectible and choose how much of it you want to offer
+        to investors.
       </p>
 
       <form onSubmit={onSubmit} className="space-y-4">
@@ -140,37 +155,61 @@ export default function NewListingPage() {
           />
         </div>
 
+        {/* Asset & ownership section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              Target Amount (USD)<span className="text-red-500">*</span>
+              Asset value (USD)<span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               min="0"
               step="0.01"
               className="w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm"
-              value={targetAmount}
-              onChange={(e) => setTargetAmount(e.target.value)}
-              placeholder="25000"
+              value={assetValue}
+              onChange={(e) => setAssetValue(e.target.value)}
+              placeholder="10000"
               required
             />
+            <p className="mt-1 text-[11px] text-foreground/60">
+              Your estimate of the full 100% value of this asset.
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              Minimum Investment (USD)
+              Seller ownership to keep (%)
             </label>
             <input
               type="number"
               min="0"
+              max="100"
               step="0.01"
               className="w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm"
-              value={minInvestment}
-              onChange={(e) => setMinInvestment(e.target.value)}
-              placeholder="100"
+              value={retainPercent}
+              onChange={(e) => setRetainPercent(e.target.value)}
+              placeholder="50"
             />
+            <p className="mt-1 text-[11px] text-foreground/60">
+              We&apos;ll offer {forSalePercent.toFixed(2)}% (${forSaleAmount}) to
+              investors.
+            </p>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Minimum investment (USD)
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className="w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm"
+            value={minInvestment}
+            onChange={(e) => setMinInvestment(e.target.value)}
+            placeholder="100"
+          />
         </div>
 
         <div>
@@ -185,6 +224,19 @@ export default function NewListingPage() {
             placeholder="Provenance, condition, why it's interesting, etc."
             required
           />
+        </div>
+
+        <div className="rounded-lg border border-foreground/15 bg-background/40 p-3 text-xs text-foreground/70">
+          <p>
+            <span className="font-medium">Summary:</span> You value this asset
+            at <span className="font-mono">${assetValue || "0.00"}</span> and
+            will keep <span className="font-mono">{retainPercent || "0"}%</span>
+            . Investors will be offered{" "}
+            <span className="font-mono">
+              {forSalePercent.toFixed(2)}% (${forSaleAmount})
+            </span>
+            .
+          </p>
         </div>
 
         <button

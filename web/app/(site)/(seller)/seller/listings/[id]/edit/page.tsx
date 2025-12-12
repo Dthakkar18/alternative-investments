@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 type Listing = {
@@ -8,6 +8,8 @@ type Listing = {
   title: string;
   description: string;
   category: string | null;
+  asset_value: string | null;
+  seller_retain_percent: string | null;
   target_amount: string;
   min_investment: string;
   status: string;
@@ -31,7 +33,8 @@ export default function EditListingPage() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [targetAmount, setTargetAmount] = useState("");
+  const [assetValue, setAssetValue] = useState("");
+  const [retainPercent, setRetainPercent] = useState("0");
   const [minInvestment, setMinInvestment] = useState("");
   const [description, setDescription] = useState("");
 
@@ -39,6 +42,17 @@ export default function EditListingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  const { forSalePercent, forSaleAmount } = useMemo(() => {
+    const asset = Number(assetValue || 0);
+    const keep = Number(retainPercent || 0);
+    const pct = Math.min(100, Math.max(0, 100 - keep));
+    const amt = asset > 0 ? (asset * pct) / 100 : 0;
+    return {
+      forSalePercent: pct,
+      forSaleAmount: amt.toFixed(2),
+    };
+  }, [assetValue, retainPercent]);
 
   // Load existing listing
   useEffect(() => {
@@ -65,13 +79,14 @@ export default function EditListingPage() {
 
         setTitle(data.title);
         setCategory(data.category ?? "");
-        setTargetAmount(data.target_amount);
+        setAssetValue(data.asset_value ?? "");
+        setRetainPercent(data.seller_retain_percent ?? "0");
         setMinInvestment(data.min_investment ?? "");
         setDescription(data.description);
 
         if (data.status !== "draft") {
           setInfo(
-            "This listing is not in draft. Some platforms only allow editing drafts, but you can still update fields here for now."
+            "This listing is no longer in draft. Edits are limited and may be blocked by platform policy."
           );
         }
       } catch (e) {
@@ -85,7 +100,7 @@ export default function EditListingPage() {
     fetchListing();
   }, [id]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!listing) return;
 
@@ -94,7 +109,6 @@ export default function EditListingPage() {
     setInfo(null);
 
     try {
-      // ensure CSRF token
       await fetch(`${apiBase}/auth/csrf/`, { credentials: "include" });
       const csrftoken = getCookie("csrftoken") || "";
 
@@ -109,8 +123,10 @@ export default function EditListingPage() {
           title: title.trim(),
           description: description.trim(),
           category: category.trim() || null,
-          target_amount: targetAmount,
+          asset_value: assetValue,
+          seller_retain_percent: retainPercent || "0",
           min_investment: minInvestment || null,
+          // target_amount stays computed server-side
         }),
       });
 
@@ -121,7 +137,6 @@ export default function EditListingPage() {
       }
 
       setInfo("Changes saved.");
-      // Option: redirect back to My Listings or detail page
       router.push("/seller/listings");
     } catch (e) {
       console.error("Error saving listing:", e);
@@ -160,7 +175,7 @@ export default function EditListingPage() {
         >
           ← Back
         </button>
-  
+
         <h1 className="text-2xl font-semibold mb-2">Editing not allowed</h1>
         <p className="text-sm text-foreground/70 mb-4">
           This listing is no longer in draft and cannot be edited.
@@ -211,9 +226,7 @@ export default function EditListingPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Category
-          </label>
+          <label className="block text-sm font-medium mb-1">Category</label>
           <input
             className="w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm"
             value={category}
@@ -224,32 +237,51 @@ export default function EditListingPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              Target Amount (USD)<span className="text-red-500">*</span>
+              Asset value (USD)<span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               min="0"
               step="0.01"
               className="w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm"
-              value={targetAmount}
-              onChange={(e) => setTargetAmount(e.target.value)}
+              value={assetValue}
+              onChange={(e) => setAssetValue(e.target.value)}
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              Minimum Investment (USD)
+              Seller ownership to keep (%)
             </label>
             <input
               type="number"
               min="0"
+              max="100"
               step="0.01"
               className="w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm"
-              value={minInvestment}
-              onChange={(e) => setMinInvestment(e.target.value)}
+              value={retainPercent}
+              onChange={(e) => setRetainPercent(e.target.value)}
             />
+            <p className="mt-1 text-[11px] text-foreground/60">
+              Investors will be offered {forSalePercent.toFixed(2)}% ($
+              {forSaleAmount}).
+            </p>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Minimum investment (USD)
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className="w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm"
+            value={minInvestment}
+            onChange={(e) => setMinInvestment(e.target.value)}
+          />
         </div>
 
         <div>
@@ -263,6 +295,20 @@ export default function EditListingPage() {
             onChange={(e) => setDescription(e.target.value)}
             required
           />
+        </div>
+
+        <div className="rounded-lg border border-foreground/15 bg-background/40 p-3 text-xs text-foreground/70">
+          <p>
+            <span className="font-medium">Summary:</span> You value this asset
+            at <span className="font-mono">${assetValue || "0.00"}</span> and
+            will keep{" "}
+            <span className="font-mono">{retainPercent || "0"}%</span>. Investors
+            will be offered{" "}
+            <span className="font-mono">
+              {forSalePercent.toFixed(2)}% (${forSaleAmount})
+            </span>
+            .
+          </p>
         </div>
 
         <button

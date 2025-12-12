@@ -8,6 +8,8 @@ type Listing = {
   title: string;
   description: string;
   seller_name: string;
+  asset_value: string;
+  seller_retain_percent: string;
   target_amount: string;
   min_investment: string;
   status: string;
@@ -89,8 +91,18 @@ export default function ListingDetailPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-start mb-6">
         <div className="flex-1 rounded-xl border border-foreground/10 p-4 text-sm">
           <div className="flex justify-between mb-2">
-            <span className="text-foreground/70">Target amount</span>
+            <span className="text-foreground/70">Asset value (100%)</span>
+            <span className="font-medium">${listing.asset_value}</span>
+          </div>
+          <div className="flex justify-between mb-2">
+            <span className="text-foreground/70">Amount offered to investors</span>
             <span className="font-medium">${listing.target_amount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-foreground/70">Seller keeps</span>
+            <span className="font-medium">
+              {Number(listing.seller_retain_percent || "0").toFixed(2)}%
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-foreground/70">Minimum investment</span>

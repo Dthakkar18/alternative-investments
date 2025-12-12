@@ -9,7 +9,8 @@ urlpatterns = [
     path("api/auth/login", u.login_view),
     path("api/auth/logout", u.logout_view),
     path("api/auth/me", u.me_view),
-    path("api/", include("listings.urls"))
+    path("api/", include("listings.urls")),
+    path("api/", include("investments.urls")),
     # path("api/auth/portfolio", u.portfolio_view),
 ]
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { InvestCard } from "./InvestCard";
 
 type Listing = {
   id: number;
@@ -11,6 +12,8 @@ type Listing = {
   asset_value: string;
   seller_retain_percent: string;
   target_amount: string;
+  total_invested: string;
+  percent_funded: string;
   min_investment: string;
   status: string;
 };
@@ -79,7 +82,7 @@ export default function ListingDetailPage() {
   }
 
   return (
-    <main className="p-8 max-w-3xl mx-auto">
+    <main className="p-8 max-w-4xl mx-auto">
       <p className="text-xs text-foreground/60 mb-2 uppercase tracking-wide">
         Status: {listing.status}
       </p>
@@ -87,16 +90,25 @@ export default function ListingDetailPage() {
       <p className="text-sm text-foreground/70 mb-4">
         Offered by {listing.seller_name}
       </p>
-
+  
       <div className="flex flex-col gap-4 md:flex-row md:items-start mb-6">
-        <div className="flex-1 rounded-xl border border-foreground/10 p-4 text-sm">
-          <div className="flex justify-between mb-2">
+        {/* The left stats card */}
+        <div className="flex-1 rounded-xl border border-foreground/10 p-4 text-sm space-y-2">
+          <div className="flex justify-between">
             <span className="text-foreground/70">Asset value (100%)</span>
             <span className="font-medium">${listing.asset_value}</span>
           </div>
-          <div className="flex justify-between mb-2">
+          <div className="flex justify-between">
             <span className="text-foreground/70">Amount offered to investors</span>
             <span className="font-medium">${listing.target_amount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-foreground/70">Total funded</span>
+            <span className="font-medium">${listing.total_invested}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-foreground/70">Funded</span>
+            <span className="font-medium">{listing.percent_funded}%</span>
           </div>
           <div className="flex justify-between">
             <span className="text-foreground/70">Seller keeps</span>
@@ -111,22 +123,20 @@ export default function ListingDetailPage() {
             </span>
           </div>
         </div>
-
-        <div className="md:w-64 rounded-xl border border-foreground/10 p-4 text-sm">
-          <p className="font-medium mb-2">Invest in this listing</p>
-          <p className="text-xs text-foreground/60 mb-4">
-            The investment flow is not live yet, but this is where investors
-            will commit capital.
-          </p>
-          <button
-            className="w-full rounded-lg bg-sage/20 border border-sage px-3 py-2 text-sm font-medium"
-            disabled
-          >
-            Investment flow coming soon
-          </button>
+  
+        {/* The right side */}
+        <div className="md:w-64">
+          <InvestCard
+            listingId={listing.id}
+            targetAmount={listing.target_amount}
+            totalInvested={listing.total_invested}
+            percentFunded={listing.percent_funded}
+            minInvestment={listing.min_investment}
+            status={listing.status}
+          />
         </div>
       </div>
-
+  
       <section>
         <h2 className="text-sm font-semibold mb-2">Description</h2>
         <p className="text-sm whitespace-pre-wrap">{listing.description}</p>

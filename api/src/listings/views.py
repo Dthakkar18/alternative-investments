@@ -33,15 +33,19 @@ class ListingViewSet(viewsets.ModelViewSet):
             .select_related("seller")
             .order_by("-created_at")
         )
+        request = self.request
+        user = getattr(request, "user", None)
 
         status_param = self.request.query_params.get("status")
         if status_param:
             qs = qs.filter(status=status_param)
 
+        # If client asks for mine=1 and user is authenticated,
+        # return only this user's listings (for seller portfolio view)
         mine_param = self.request.query_params.get("mine")
-        if mine_param in ("1", "true", "True"):
+        if mine_param in ("1", "true", "True") and user and user.is_authenticated:
             if self.request.user.is_authenticated:
-                qs = qs.filter(seller=self.request.user)
+                qs = qs.filter(seller=user)
             else:
                 # if not logged in, no personal listings
                 qs = Listing.objects.none()

@@ -23,6 +23,8 @@ type ListingSummary = {
   created_at: string;
 };
 
+type FilterMode = "all" | "investor" | "seller";
+
 const apiBase =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -30,6 +32,7 @@ export default function PortfolioPage() {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterMode>("all");
 
   useEffect(() => {
     async function loadPortfolio() {
@@ -110,6 +113,16 @@ export default function PortfolioPage() {
     loadPortfolio();
   }, []);
 
+  const filteredInvestments = investments.filter((inv) => {
+    if (filter === "investor") {
+      return !inv.isSellerHolding;
+    }
+    if (filter === "seller") {
+      return inv.isSellerHolding === true;
+    }
+    return true;
+  });
+
   if (loading) {
     return (
       <main className="p-8 max-w-4xl mx-auto">
@@ -124,6 +137,45 @@ export default function PortfolioPage() {
       <p className="text-sm text-foreground/70 mb-4">
         View the positions you&apos;ve taken in listings on the platform.
       </p>
+
+      {/* The filter toggle */}
+      {!error && investments.length > 0 && (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-background/40 p-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className={`rounded-full px-3 py-1 transition ${
+              filter === "all"
+                ? "bg-foreground text-background"
+                : "text-foreground/70 hover:bg-foreground/5"
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter("investor")}
+            className={`rounded-full px-3 py-1 transition ${
+              filter === "investor"
+                ? "bg-foreground text-background"
+                : "text-foreground/70 hover:bg-foreground/5"
+            }`}
+          >
+            Investor positions
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter("seller")}
+            className={`rounded-full px-3 py-1 transition ${
+              filter === "seller"
+                ? "bg-foreground text-background"
+                : "text-foreground/70 hover:bg-foreground/5"
+            }`}
+          >
+            Seller holdings
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm">
@@ -143,9 +195,15 @@ export default function PortfolioPage() {
         </p>
       )}
 
+      {!error && investments.length > 0 && filteredInvestments.length === 0 && (
+        <p className="mt-2 text-sm text-foreground/60">
+          No positions match this filter.
+        </p>
+      )}
+
       {investments.length > 0 && (
         <div className="mt-4 space-y-3">
-          {investments.map((inv) => {
+          {filteredInvestments.map((inv) => {
             const assetVal = Number(inv.listing_asset_value || "0");
             const target = Number(inv.listing_target_amount || "0");
             const amt = Number(inv.amount || "0");

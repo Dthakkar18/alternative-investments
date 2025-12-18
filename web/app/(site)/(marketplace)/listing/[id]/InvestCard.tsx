@@ -94,14 +94,20 @@ export function InvestCard({
         let msg = `Failed to invest (status ${res.status}).`;
         try {
           const data = await res.json();
+        
           if (data?.detail) {
             msg = data.detail;
-          } else if (typeof data === "object") {
+          } else if (data && typeof data === "object" && !Array.isArray(data)) {
             // grab first error string if DRF returns field-errors
-            const firstKey = Object.keys(data)[0];
-            const firstVal = (data as any)[firstKey];
-            if (typeof firstVal === "string") msg = firstVal;
-            if (Array.isArray(firstVal) && firstVal[0]) msg = firstVal[0];
+            const record = data as Record<string, unknown>;
+            const [firstKey] = Object.keys(record);
+            const firstVal = record[firstKey];
+        
+            if (typeof firstVal === "string") {
+              msg = firstVal;
+            } else if (Array.isArray(firstVal) && typeof firstVal[0] === "string") {
+              msg = firstVal[0];
+            }
           }
         } catch {
           // ignore JSON parse errors
